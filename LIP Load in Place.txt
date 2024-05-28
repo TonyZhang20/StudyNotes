@@ -1,9 +1,6 @@
 ﻿LIP, Load in Place 就地加载, 一个写入大量文件，并快速读取大量文件的技术，主要是使用指针偏移的offset来写入和读取存入到二进制文件中的指针
 
-
 因为当写入含有指针的数据到文件中后，读取的时候，读取buffer所处的指针地址会产生变动，所以会导致读取数据所含的指针指向地址为错误地址
-
-
 Load in Place 就是一种不用重新开辟新的数据空间, 直接使用读取的buffer空间来对指针所指向的地址进行重新定向的方法
 
 有一个双链表节点Node(含有 pPrev pNext)
@@ -19,43 +16,33 @@ struct inPlaceHdr
 };
 
 4. 将Node所含指针 地址 与 buffer[0] 的地址相减 得到指针的偏移值，为offset，并加入到 offsetBlocks[i]中
-
-
 比如Node 所含有指针为 pRev 和 pNext
-
 
 那么
 offsetBlocks[2 * i] = (int)((uintptr_t)buffer[i].pPrev - (uintptr_t)(&buffer[0]));
 offsetBlocks[2 * i + 1] = (int)((uintptr_t)(buffer[i].pNext) - (uintptr_t)(&buffer[0]));
 
-
 5. 最后将buffer 和 hdr 直接写入二进制文件
 fwrite(buffer, sizeof(Node) * nodeNum, 1, pFileHandle);
 fwrite(hdr, hdrSize, 1, pFileHandle)
-
 
 读取
 1. 开辟指定大小的连续空间buffer，并读取二进制文件, 上方我存储了一个buffer 一个hdr，那么我就开辟两个空间
         memoryBuffer = new char[sizeof(Node) * nodeNums];
         Node* buffer = (Node*)memoryBuffer;
 
-
         char* p_inPlaceHdr = new char[sizeof(inPlaceHdr) + nodeNums * 2 * sizeof(int)];
         inPlaceHdr* ip = (inPlaceHdr*)p_inPlaceHdr;
 
-
-                fread(buffer, sizeof(Node) * nodeNums, 1 , pFileHandle);
-                fread(ip, sizeof(inPlaceHdr) * nodeNums  * 2, 1 , pFileHandle);
-
+        fread(buffer, sizeof(Node) * nodeNums, 1 , pFileHandle);
+        fread(ip, sizeof(inPlaceHdr) * nodeNums  * 2, 1 , pFileHandle);
 
 2. For Loop 对 buffer进行遍历，用offset重新定向 buffer中指针的prev和pnext
 我拿buffer[i].prev 举例
 buffer[i].pPrev = (Node*)((uintptr_t)&buffer[0] + ip->offsetBlocks[2 * i]);
 
-
 3. 现在将 双链表的 header 定向到buffer[0] ，读取文件就完成了，并且 Node所存储的指针也指向了正确的位置
 
-
-优点： 读取速度快，使用的空间很少，只有读取文件所需的空间
+优点： 读取速度快，使用的空间很少，只有读取文件所需的空间，不需要开辟额外空间
 缺点： 你开了这个空间是无法删除的，只能remove掉指针或者让指针指向其他地方
 
