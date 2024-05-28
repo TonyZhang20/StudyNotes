@@ -18,8 +18,6 @@ struct inPlaceHdr
 	int offsetBlocks[];
 };
 
-
-
 4. 将Node所含指针 地址 与 buffer[0] 的地址相减 得到指针的偏移值，为offset，并加入到 offsetBlocks[i]中
 
 
